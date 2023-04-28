@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-
+import time
 
 class KeyboardTrainer(tk.Tk):
     def __init__(self):
@@ -11,6 +11,8 @@ class KeyboardTrainer(tk.Tk):
 
         self.text_to_type = "Введите этот текст "
         self.current_position = 0
+        self.start_time = None
+        self.mistakes = 0
 
         self.entry_var = tk.StringVar()
         self.entry_var.trace("w", self.check_text)
@@ -39,11 +41,19 @@ class KeyboardTrainer(tk.Tk):
 
         if entered_text == correct_text:
             self.current_position = len(entered_text)
+            if (self.current_position > 0):
+                if not self.start_time:
+                    self.start_time = time.time()
 
             if self.text_to_type.find(entered_text) != -1:
                 self.label_result.config(text="Пока все правильно", foreground="green")
             if entered_text == self.text_to_type[:-1]:
                 self.label_result.config(text="Поздравляем, вы успешно ввели текст!", foreground="green")
+                elapsed_time = time.time() - self.start_time
+                speed = len(entered_text) / elapsed_time * 60
+                self.label_result.config(text=f"Скорость: {speed:.2f} зн/мин. Опечатки: {self.mistakes}",
+                                         foreground="green")
+
                 # Реализовать выход из программы
 
             for i in range(self.current_position):
@@ -59,6 +69,7 @@ class KeyboardTrainer(tk.Tk):
             for i in range(self.current_position):
                 self.label_text.tag_add("green", f"1.{i}", f"1.{i + 1}")
             self.label_text.tag_add("red", f"1.{wrong_pos}", f"1.{self.current_position + 1}")
+            self.mistakes += 1 
             self.label_result.config(text="Ошибка! Исправьте ошибку и продолжайте.", foreground="red")
 
         self.label_text.configure(state='disabled')
