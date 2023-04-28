@@ -1,23 +1,26 @@
 import tkinter as tk
 from tkinter import ttk
 
+
 class KeyboardTrainer(tk.Tk):
     def __init__(self):
         super().__init__()
 
         self.title("Клавиатурный тренажер")
-        self.geometry("800x200")
+        self.geometry("800x300")
 
-        self.text_to_type = "Введите этот текст"
+        self.text_to_type = "Введите этот текст "
         self.current_position = 0
-
-        self.text_var = tk.StringVar()
-        self.text_var.set(self.text_to_type)
 
         self.entry_var = tk.StringVar()
         self.entry_var.trace("w", self.check_text)
 
-        self.label_text = ttk.Label(self, textvariable=self.text_var, font=("Arial", 20))
+        self.label_text = tk.Text(self, font=("Arial", 20), height=2, width=40)
+        self.label_text.insert(tk.END, self.text_to_type)
+        self.label_text.configure(state='disabled')
+        self.label_text.tag_configure("green", foreground="green")
+        self.label_text.tag_configure("yellow", background="yellow")
+        self.label_text.tag_configure("red", foreground="red")
         self.label_text.pack(pady=20)
 
         self.entry_text = ttk.Entry(self, textvariable=self.entry_var, font=("Arial", 20))
@@ -30,27 +33,36 @@ class KeyboardTrainer(tk.Tk):
         entered_text = self.entry_var.get()
         correct_text = self.text_to_type[: len(entered_text)]
 
+        self.label_text.configure(state='normal')
+        self.label_text.delete('1.0', tk.END)
+        self.label_text.insert(tk.END, self.text_to_type)
+
         if entered_text == correct_text:
             self.current_position = len(entered_text)
-            self.label_text.config(foreground="blue")
 
-            if entered_text == self.text_to_type:
+            if self.text_to_type.find(entered_text) != -1:
+                self.label_result.config(text="Пока все правильно", foreground="green")
+            if entered_text == self.text_to_type[:-1]:
                 self.label_result.config(text="Поздравляем, вы успешно ввели текст!", foreground="green")
+                # Реализовать выход из программы
+
+            for i in range(self.current_position):
+                self.label_text.tag_add("green", f"1.{i}", f"1.{i + 1}")
+
+            if self.current_position < len(self.text_to_type):
+                index = self.current_position
+                while self.label_text.get(f"1.{index}") != " " or index == len(self.text_to_type):
+                    index += 1
+                self.label_text.tag_add("yellow", f"1.{self.current_position}", f"1.{index}")
         else:
             wrong_pos = self.current_position
-            for i, (a, b) in enumerate(zip(entered_text, correct_text)):
-                if a != b:
-                    wrong_pos = i
-                    break
-
-            formatted_text = (
-                self.text_to_type[:wrong_pos]
-                + "\033[1;31m" + self.text_to_type[wrong_pos] + "\033[m"
-                + self.text_to_type[wrong_pos + 1:]
-            )
-
-            self.label_text.config(text=formatted_text)
+            for i in range(self.current_position):
+                self.label_text.tag_add("green", f"1.{i}", f"1.{i + 1}")
+            self.label_text.tag_add("red", f"1.{wrong_pos}", f"1.{self.current_position + 1}")
             self.label_result.config(text="Ошибка! Исправьте ошибку и продолжайте.", foreground="red")
+
+        self.label_text.configure(state='disabled')
+
 
 if __name__ == "__main__":
     app = KeyboardTrainer()
