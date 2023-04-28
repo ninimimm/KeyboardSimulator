@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 import time
+import json
+import os
 
 
 class UserStatistics:
@@ -24,6 +26,31 @@ class UserStatistics:
 
     def get_avg_speed(self):
         return self.total_speed / self.texts_typed if self.texts_typed > 0 else 0
+
+    def save_to_file(self, filename):
+        with open(filename, "w") as f:
+            json.dump({
+                "username": self.username,
+                "texts_typed": self.texts_typed,
+                "total_speed": self.total_speed,
+                "training_history": self.training_history,
+                "mistakes_by_char": self.mistakes_by_char
+            }, f)
+
+    @classmethod
+    def load_from_file(cls, filename):
+        if not os.path.exists(filename):
+            return None
+
+        with open(filename, "r") as f:
+            data = json.load(f)
+
+        user_stats = cls(data["username"])
+        user_stats.texts_typed = data["texts_typed"]
+        user_stats.total_speed = data["total_speed"]
+        user_stats.training_history = data["training_history"]
+        user_stats.mistakes_by_char = data["mistakes_by_char"]
+        return user_stats
 
 
 class KeyboardTrainer(tk.Tk):
@@ -78,7 +105,7 @@ class KeyboardTrainer(tk.Tk):
         self.label_text.tag_configure("red", foreground="red")
         self.label_text.pack(pady=20)
 
-        self.entry_text = ttk.Entry(self.trainer_frame, textvariable=self.entry_var, font=("Arial", 20))
+        self.entry_text = ttk.Entry(self.trainer_frame, textvariable = self.entry_var, font = ("Arial", 20))
         self.entry_text.pack()
 
         self.label_result = ttk.Label(self.trainer_frame, text="", font=("Arial", 14))
@@ -89,12 +116,21 @@ class KeyboardTrainer(tk.Tk):
 
     def switch_to_trainer_frame(self):
         self.update_username()
+        filename = f"{self.user_statistics.username}.json"
+        existing_user_stats = UserStatistics.load_from_file(filename)
+        if existing_user_stats:
+            self.user_statistics = existing_user_stats
+        else:
+            self.user_statistics = UserStatistics(self.entry_name.get())  # create a new UserStatistics object
         self.frames["NameFrame"].pack_forget()
         self.frames["TrainerFrame"].pack(fill="both", expand=True)
+        self.update_stats_label()
 
     def switch_to_name_frame(self):
         self.frames["TrainerFrame"].pack_forget()
         self.frames["NameFrame"].pack(fill="both", expand=True)
+        self.user_statistics.save_to_file(f"{self.user_statistics.username}.json")
+        self.update_stats_label()
 
     def update_username(self):
         self.user_statistics.username = self.entry_name.get()
@@ -158,6 +194,8 @@ class KeyboardTrainer(tk.Tk):
         self.label_stats.config(text=f"Текстов набрано: {self.user_statistics.texts_typed}. "
                                      f"Средняя скорость: {self.user_statistics.get_avg_speed():.2f} зн/мин. "
                                      f"{mistakes_stats}")
+
+
 if __name__ == "__main__":
     user_stats = UserStatistics("JohnDoe")
     app = KeyboardTrainer(user_stats)
