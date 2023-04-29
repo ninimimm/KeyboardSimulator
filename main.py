@@ -1,5 +1,7 @@
 import tkinter as tk
+import os
 from tkinter import ttk
+from random import randint
 
 
 class KeyboardTrainer(tk.Tk):
@@ -7,15 +9,18 @@ class KeyboardTrainer(tk.Tk):
         super().__init__()
 
         self.title("Клавиатурный тренажер")
-        self.geometry("800x300")
+        self.geometry("800x400")
 
-        self.text_to_type = "Введите этот текст "
+        text_count = len(os.listdir("text"))
+        text_num = randint(1, text_count)
+        with open(f'text/t{text_num}.txt', 'r', encoding='utf-8') as f:
+            self.text_to_type = f'{f.read()} '
         self.current_position = 0
 
         self.entry_var = tk.StringVar()
         self.entry_var.trace("w", self.check_text)
 
-        self.label_text = tk.Text(self, font=("Arial", 20), height=2, width=40)
+        self.label_text = tk.Text(self, font=("Arial", 20), height=6, width=40, wrap="word")
         self.label_text.insert(tk.END, self.text_to_type)
         self.label_text.configure(state='disabled')
         self.label_text.tag_configure("green", foreground="green")
