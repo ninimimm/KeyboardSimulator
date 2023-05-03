@@ -3,7 +3,8 @@ from tkinter import ttk
 import time
 import json
 import os
-
+import random
+import glob
 
 class UserStatistics:
     def __init__(self, username):
@@ -52,16 +53,28 @@ class UserStatistics:
         user_stats.mistakes_by_char = data["mistakes_by_char"]
         return user_stats
 
-
 class KeyboardTrainer(tk.Tk):
     def __init__(self, user_statistics):
         super().__init__()
 
         self.title("Клавиатурный тренажер")
-        self.geometry("800x400")
+        self.geometry("1600x800")
         self.user_statistics = user_statistics
-
         self.init_ui()
+
+    def load_random_text(self):
+        text_files = glob.glob("text/*.txt")
+        if text_files:
+            random_file = random.choice(text_files)
+            with open(random_file, "r", encoding="utf-8") as file:
+                self.text_to_type = file.read().strip()
+        else:
+            self.text_to_type = "No text files found in the 'text' folder."
+
+        self.label_text.configure(state='normal')
+        self.label_text.delete('1.0', tk.END)
+        self.label_text.insert(tk.END, self.text_to_type)
+        self.label_text.configure(state='disabled')
 
     def init_ui(self):
         self.frames = {}
@@ -82,14 +95,25 @@ class KeyboardTrainer(tk.Tk):
         self.label_username = ttk.Label(self.trainer_frame, text=f"Пользователь: {self.user_statistics.username}", font=("Arial", 14))
         self.label_username.pack(pady=10)
 
-        self.label_stats = ttk.Label(self.trainer_frame, text="", font=("Arial", 14))
-        self.label_stats.pack(pady=10)
-        self.update_stats_label()
-
         self.init_trainer_widgets()
 
+        self.stats_frame = tk.Frame(self)
+        self.frames["StatsFrame"] = self.stats_frame
+
+        self.label_stats_title = ttk.Label(self.stats_frame, text="Статистика пользователя", font=("Arial", 14))
+        self.label_stats_title.pack(pady=10)
+
+        self.tree = ttk.Treeview(self.stats_frame, columns=("char", "count"), show="headings", height=10)
+        self.tree.column("char", width=300, anchor="center")
+        self.tree.column("count", width=300, anchor="center")
+        self.tree.heading("char", text="Символ")
+        self.tree.heading("count", text="Ошибок")
+        self.tree.pack()
+
+        self.switch_frame_button = ttk.Button(self.stats_frame, text="Вернуться к тренировке", command=self.switch_to_trainer_frame)
+        self.switch_frame_button.pack(pady=5)
+
     def init_trainer_widgets(self):
-        self.text_to_type = "Введите этот текст "
         self.current_position = 0
         self.start_time = None
         self.mistakes = 0
@@ -97,15 +121,14 @@ class KeyboardTrainer(tk.Tk):
         self.entry_var = tk.StringVar()
         self.entry_var.trace("w", self.check_text)
 
-        self.label_text = tk.Text(self.trainer_frame, font=("Arial", 20), height=2, width=40)
-        self.label_text.insert(tk.END, self.text_to_type)
+        self.label_text = tk.Text(self.trainer_frame, font=("Arial", 20), height=10, width=50)
         self.label_text.configure(state='disabled')
         self.label_text.tag_configure("green", foreground="green")
         self.label_text.tag_configure("yellow", background="yellow")
         self.label_text.tag_configure("red", foreground="red")
         self.label_text.pack(pady=20)
 
-        self.entry_text = ttk.Entry(self.trainer_frame, textvariable = self.entry_var, font = ("Arial", 20))
+        self.entry_text = ttk.Entry(self.trainer_frame, textvariable=self.entry_var, font=("Arial", 20))
         self.entry_text.pack()
 
         self.label_result = ttk.Label(self.trainer_frame, text="", font=("Arial", 14))
@@ -113,6 +136,10 @@ class KeyboardTrainer(tk.Tk):
         self.switch_frame_button = ttk.Button(self.trainer_frame, text="Сменить пользователя",
                                               command=self.switch_to_name_frame)
         self.switch_frame_button.pack(pady=5)
+        self.stats_button = ttk.Button(self.trainer_frame, text="Статистика", command=self.switch_to_stats_frame)
+        self.stats_button.pack(pady=5)
+
+        self.load_random_text()
 
     def switch_to_trainer_frame(self):
         self.update_username()
@@ -122,7 +149,9 @@ class KeyboardTrainer(tk.Tk):
             self.user_statistics = existing_user_stats
         else:
             self.user_statistics = UserStatistics(self.entry_name.get())  # create a new UserStatistics object
+            self.user_statistics.save_to_file(filename)  # save the new UserStatistics object to the file
         self.frames["NameFrame"].pack_forget()
+        self.frames["StatsFrame"].pack_forget()
         self.frames["TrainerFrame"].pack(fill="both", expand=True)
         self.update_stats_label()
 
@@ -131,6 +160,11 @@ class KeyboardTrainer(tk.Tk):
         self.frames["NameFrame"].pack(fill="both", expand=True)
         self.user_statistics.save_to_file(f"{self.user_statistics.username}.json")
         self.update_stats_label()
+
+    def switch_to_stats_frame(self):
+        self.frames["TrainerFrame"].pack_forget()
+        self.frames["StatsFrame"].pack(fill="both", expand=True)
+        self.update_stats_table()
 
     def update_username(self):
         self.user_statistics.username = self.entry_name.get()
@@ -168,7 +202,7 @@ class KeyboardTrainer(tk.Tk):
 
             if self.current_position < len(self.text_to_type):
                 index = self.current_position
-                while self.label_text.get(f"1.{index}") != " " or index == len(self.text_to_type):
+                while self.label_text.get(f"1.{index}") != " " and index < len(self.text_to_type):
                     index += 1
                 self.label_text.tag_add("yellow", f"1.{self.current_position}", f"1.{index}")
         else:
@@ -187,17 +221,19 @@ class KeyboardTrainer(tk.Tk):
         self.entry_text.delete(0, 'end')
         self.start_time = None
         self.mistakes = 0
+        self.load_random_text()
 
     def update_stats_label(self):
-        mistakes_stats = ", ".join(f"{char}: {count}" for char, count in self.user_statistics.mistakes_by_char.items())
-        mistakes_stats = f"Ошибки по символам: {mistakes_stats}" if mistakes_stats else "Ошибки по символам: нет"
-        self.label_stats.config(text=f"Текстов набрано: {self.user_statistics.texts_typed}. "
-                                     f"Средняя скорость: {self.user_statistics.get_avg_speed():.2f} зн/мин. "
-                                     f"{mistakes_stats}")
+        avg_speed = self.user_statistics.get_avg_speed()
+        self.label_result.config(text=f"Средняя скорость: {avg_speed:.2f} зн/мин. Ошибок: {self.mistakes}",
+                                 foreground="green")
 
-
+    def update_stats_table(self):
+        for i in self.tree.get_children():
+            self.tree.delete(i)
+        for char, count in self.user_statistics.mistakes_by_char.items():
+            self.tree.insert("", "end", values=(char, count))
 if __name__ == "__main__":
     user_stats = UserStatistics("JohnDoe")
     app = KeyboardTrainer(user_stats)
     app.mainloop()
-
