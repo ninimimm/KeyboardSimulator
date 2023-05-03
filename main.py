@@ -60,6 +60,7 @@ class KeyboardTrainer(tk.Tk):
         self.title("Клавиатурный тренажер")
         self.geometry("1600x800")
         self.user_statistics = user_statistics
+        self.is_wrong_sequence = False
         self.init_ui()
 
     def load_random_text(self):
@@ -156,12 +157,13 @@ class KeyboardTrainer(tk.Tk):
         self.update_stats_label()
 
     def switch_to_name_frame(self):
+        self.user_statistics.save_to_file(f"{self.user_statistics.username}.json")
         self.frames["TrainerFrame"].pack_forget()
         self.frames["NameFrame"].pack(fill="both", expand=True)
-        self.user_statistics.save_to_file(f"{self.user_statistics.username}.json")
         self.update_stats_label()
 
     def switch_to_stats_frame(self):
+        self.user_statistics.save_to_file(f"{self.user_statistics.username}.json")
         self.frames["TrainerFrame"].pack_forget()
         self.frames["StatsFrame"].pack(fill="both", expand=True)
         self.update_stats_table()
@@ -179,6 +181,7 @@ class KeyboardTrainer(tk.Tk):
         self.label_text.insert(tk.END, self.text_to_type)
 
         if entered_text == correct_text:
+            self.is_wrong_sequence = False  # Reset the flag when the entered text is correct
             self.current_position = len(entered_text)
             if (self.current_position > 0):
                 if not self.start_time:
@@ -206,13 +209,16 @@ class KeyboardTrainer(tk.Tk):
                     index += 1
                 self.label_text.tag_add("yellow", f"1.{self.current_position}", f"1.{index}")
         else:
-            wrong_pos = self.current_position
+            if not self.is_wrong_sequence:  # Only count the mistake if it's the start of the wrong sequence
+                wrong_pos = self.current_position
+                mistake_char = self.text_to_type[wrong_pos]
+                self.user_statistics.add_mistake(mistake_char)
+                self.mistakes += 1
+                self.is_wrong_sequence = True  # Set the flag to avoid counting further mistakes in the current sequence
+
             for i in range(self.current_position):
                 self.label_text.tag_add("green", f"1.{i}", f"1.{i + 1}")
-            self.label_text.tag_add("red", f"1.{wrong_pos}", f"1.{self.current_position + 1}")
-            mistake_char = self.text_to_type[wrong_pos]
-            self.user_statistics.add_mistake(mistake_char)
-            self.mistakes += 1
+            self.label_text.tag_add("red", f"1.{self.current_position}", f"1.{len(entered_text)}")
             self.label_result.config(text="Ошибка! Исправьте ошибку и продолжайте.", foreground="red")
 
         self.label_text.configure(state='disabled')
