@@ -68,7 +68,7 @@ class KeyboardTrainer(tk.Tk):
         if text_files:
             random_file = random.choice(text_files)
             with open(random_file, "r", encoding="utf-8") as file:
-                self.text_to_type = file.read().strip()
+                self.text_to_type = file.read()
         else:
             self.text_to_type = "No text files found in the 'text' folder."
 
@@ -97,7 +97,9 @@ class KeyboardTrainer(tk.Tk):
         self.label_username.pack(pady=10)
 
         self.init_trainer_widgets()
+        self.init_statistic_widgets()
 
+    def init_statistic_widgets(self):
         self.stats_frame = tk.Frame(self)
         self.frames["StatsFrame"] = self.stats_frame
 
@@ -111,9 +113,9 @@ class KeyboardTrainer(tk.Tk):
         self.tree.heading("count", text="Ошибок")
         self.tree.pack()
 
-        self.switch_frame_button = ttk.Button(self.stats_frame, text="Вернуться к тренировке", command=self.switch_to_trainer_frame)
+        self.switch_frame_button = ttk.Button(self.stats_frame, text="Вернуться к тренировке",
+                                              command=self.switch_to_trainer_frame)
         self.switch_frame_button.pack(pady=5)
-
     def init_trainer_widgets(self):
         self.current_position = 0
         self.start_time = None
@@ -122,7 +124,7 @@ class KeyboardTrainer(tk.Tk):
         self.entry_var = tk.StringVar()
         self.entry_var.trace("w", self.check_text)
 
-        self.label_text = tk.Text(self.trainer_frame, font=("Arial", 20), height=10, width=50)
+        self.label_text = tk.Text(self.trainer_frame, font=("Arial", 20), height=10, width=50, wrap="word")
         self.label_text.configure(state='disabled')
         self.label_text.tag_configure("green", foreground="green")
         self.label_text.tag_configure("yellow", background="yellow")
@@ -172,7 +174,7 @@ class KeyboardTrainer(tk.Tk):
         self.user_statistics.username = self.entry_name.get()
         self.label_username.config(text=f"Пользователь: {self.user_statistics.username}")
 
-    def check_text(self, *args):
+    def check_text(self):
         entered_text = self.entry_var.get()
         correct_text = self.text_to_type[: len(entered_text)]
 
