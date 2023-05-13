@@ -7,6 +7,7 @@ import glob
 import json
 import UserStats as UserStatistics
 
+
 class KeyboardTrainer(tk.Tk):
     def __init__(self, user_statistics):
         super().__init__()
@@ -42,13 +43,15 @@ class KeyboardTrainer(tk.Tk):
         self.entry_name = ttk.Entry(self.name_frame, font=("Arial", 14))
         self.entry_name.pack(pady=10)
         self.entry_name.insert(0, self.user_statistics.username)
-        self.entry_name_button = ttk.Button(self.name_frame, text="Продолжить", command=self.switch_to_trainer_frame)
+        self.entry_name_button = ttk.Button(self.name_frame,
+                                            text="Продолжить", command=self.switch_to_trainer_frame)
         self.entry_name_button.pack(pady=5)
 
         self.trainer_frame = tk.Frame(self)
         self.frames["TrainerFrame"] = self.trainer_frame
 
-        self.label_username = ttk.Label(self.trainer_frame, text=f"Пользователь: {self.user_statistics.username}", font=("Arial", 14))
+        self.label_username = ttk.Label(self.trainer_frame,
+                                        text=f"Пользователь: {self.user_statistics.username}", font=("Arial", 14))
         self.label_username.pack(pady=10)
 
         self.init_trainer_widgets()
@@ -56,21 +59,23 @@ class KeyboardTrainer(tk.Tk):
         self.stats_frame = tk.Frame(self)
         self.frames["StatsFrame"] = self.stats_frame
 
-        self.label_stats_title = ttk.Label(self.stats_frame, text="Статистика пользователя", font=("Arial", 14))
+        self.label_stats_title = ttk.Label(self.stats_frame,
+                                           text="Статистика пользователя", font=("Arial", 14))
         self.label_stats_title.pack(pady=10)
 
-        self.text_choice_button_main = ttk.Button(self.trainer_frame, text="Выбор текста", command=self.switch_to_text_choice_frame)
+        self.text_choice_button_main = ttk.Button(self.trainer_frame,
+                                                  text="Выбор текста", command=self.switch_to_text_choice_frame)
         self.text_choice_button_main.pack(pady=5)
 
-
-        self.tree = ttk.Treeview(self.stats_frame, columns=("char", "count"), show="headings", height=10)
-        self.tree.column("char", width=300, anchor="center")
-        self.tree.column("count", width=300, anchor="center")
-        self.tree.heading("char", text="Символ")
-        self.tree.heading("count", text="Ошибок")
+        self.tree = ttk.Treeview(self.stats_frame, columns=("day", "speed"), show="headings", height=10)
+        self.tree.column("day", width=300, anchor="center")
+        self.tree.column("speed", width=300, anchor="center")
+        self.tree.heading("day", text="День")
+        self.tree.heading("speed", text="Средняя скорость")
         self.tree.pack()
 
-        self.switch_frame_button = ttk.Button(self.stats_frame, text="Вернуться к тренировке", command=self.switch_to_trainer_frame)
+        self.switch_frame_button = ttk.Button(self.stats_frame,
+                                              text="Вернуться к тренировке", command=self.switch_to_trainer_frame)
         self.switch_frame_button.pack(pady=5)
 
         self.text_choice_frame = tk.Frame(self)
@@ -105,7 +110,6 @@ class KeyboardTrainer(tk.Tk):
         self.text_choice_button = ttk.Button(self.stats_frame, text="Статистика по ошибкам",
                                              command=self.count_mistaces)
         self.text_choice_button.pack(pady=5)
-
 
     def init_trainer_widgets(self):
         self.current_position = 0
@@ -196,10 +200,13 @@ class KeyboardTrainer(tk.Tk):
         for file in json_files:
             with open(file, 'r') as f:
                 data = json.load(f)
-                if 'username' in data and 'total_speed' in data:
+                if 'username' in data and 'total_speed' in data and 'texts_typed' in data:
                     user = data['username']
-                    average_speed = data['total_speed']/data["texts_typed"]
-                    users_texts[user] = average_speed
+                    if data["texts_typed"] == 0:
+                        users_texts[user] = 0
+                    else:
+                        average_speed = data['total_speed']/data["texts_typed"]
+                        users_texts[user] = average_speed
         sorted_users = sorted(users_texts.items(), key=lambda x: x[1], reverse=True)
 
         self.display_avarage_results_speed(sorted_users)
@@ -224,9 +231,12 @@ class KeyboardTrainer(tk.Tk):
         for file in json_files:
             with open(file, 'r') as f:
                 data = json.load(f)
-                if 'username' in data and 'total_speed' in data:
+                if 'username' in data and 'training_history' in data and len(data['training_history']) >= 0:
                     user = data['username']
-                    average_speed = max(x for x in data['training_history'][0])
+                    if len(data['training_history']) == 0:
+                        average_speed = 0
+                    else:
+                        average_speed = max(x for x in data['training_history'][0])
                     users_texts[user] = average_speed
         sorted_users = sorted(users_texts.items(), key=lambda x: x[1], reverse=True)
 
@@ -242,8 +252,7 @@ class KeyboardTrainer(tk.Tk):
         tree.pack()
 
         for i, (user, speed) in enumerate(sorted_users[:10]):
-            tree.insert("", i, values=(user, round(speed,1)))
-
+            tree.insert("", i, values=(user, round(speed, 1)))
 
     def count_mistaces(self):
         json_files = [f for f in os.listdir() if f.endswith('.json')]
@@ -271,7 +280,7 @@ class KeyboardTrainer(tk.Tk):
         tree.pack()
 
         for i, (user, speed) in enumerate(sorted_users[:10]):
-            tree.insert("", i, values=(user, round(speed,1)))
+            tree.insert("", i, values=(user, round(speed, 1)))
 
     def switch_to_trainer_frame(self):
         self.update_username()
@@ -370,5 +379,9 @@ class KeyboardTrainer(tk.Tk):
     def update_stats_table(self):
         for i in self.tree.get_children():
             self.tree.delete(i)
-        for char, count in self.user_statistics.mistakes_by_char.items():
-            self.tree.insert("", "end", values=(char, count))
+        spam = []
+        for day, speed in self.user_statistics.speed_dynamics.items():
+            spam.append((day, round(speed[0], 2)))
+            spam.sort()
+        for i in spam:
+            self.tree.insert("", "end", values=(i[0], i[1]))
