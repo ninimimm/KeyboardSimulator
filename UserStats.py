@@ -1,5 +1,7 @@
 import json
 import os
+import datetime
+
 
 class UserStatistics:
     def __init__(self, username):
@@ -8,11 +10,20 @@ class UserStatistics:
         self.total_speed = 0
         self.training_history = []
         self.mistakes_by_char = {}
+        self.speed_dynamics = {}
 
     def add_result(self, speed, mistakes):
         self.texts_typed += 1
         self.total_speed += speed
         self.training_history.append((speed, mistakes))
+        day = str(datetime.date.today())
+        if day not in self.speed_dynamics:
+            self.speed_dynamics[day] = [speed, 1]
+        else:
+            eggs = self.speed_dynamics[day][0] * self.speed_dynamics[day][1]
+            eggs += speed
+            self.speed_dynamics[day][1] += 1
+            self.speed_dynamics[day][0] = eggs / self.speed_dynamics[day][1]
 
     def add_mistake(self, mistake_char):
         if mistake_char not in self.mistakes_by_char:
@@ -31,8 +42,10 @@ class UserStatistics:
                 "texts_typed": self.texts_typed,
                 "total_speed": self.total_speed,
                 "training_history": self.training_history,
-                "mistakes_by_char": self.mistakes_by_char
+                "mistakes_by_char": self.mistakes_by_char,
+                "speed_dynamics": self.speed_dynamics
             }, f)
+
     def username(self):
         return self.username
 
@@ -49,4 +62,5 @@ class UserStatistics:
         user_stats.total_speed = data["total_speed"]
         user_stats.training_history = data["training_history"]
         user_stats.mistakes_by_char = data["mistakes_by_char"]
+        user_stats.speed_dynamics = data["speed_dynamics"]
         return user_stats
