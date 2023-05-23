@@ -16,6 +16,10 @@ class KeyboardTrainer(tk.Tk):
         self.user_statistics = user_statistics
         self.is_wrong_sequence = False
         self.init_ui()
+        self.bind("<F1>", lambda event: self.open_on_screen_keyboard(event))
+        self.windowStats = None
+        self.treeStats = None
+        self.active_entry = None
 
     def load_random_text(self, random_choice=True):
         if random_choice:
@@ -40,6 +44,7 @@ class KeyboardTrainer(tk.Tk):
         self.frames["NameFrame"].pack(fill="both", expand=True)
 
         self.entry_name = ttk.Entry(self.name_frame, font=("Arial", 14))
+        self.entry_name.bind("<FocusIn>", self.track_active_entry)
         self.entry_name.pack(pady=10)
         self.entry_name.insert(0, self.user_statistics.username)
         self.entry_name_button = ttk.Button(self.name_frame, text="Продолжить", command=self.switch_to_trainer_frame)
@@ -56,10 +61,8 @@ class KeyboardTrainer(tk.Tk):
         self.stats_frame = tk.Frame(self)
         self.frames["StatsFrame"] = self.stats_frame
 
-        self.label_stats_title = ttk.Label(self.stats_frame, text="Статистика пользователя", font=("Arial", 14))
-        self.label_stats_title.pack(pady=10)
-
-        self.text_choice_button_main = ttk.Button(self.trainer_frame, text="Выбор текста", command=self.switch_to_text_choice_frame)
+        self.text_choice_button_main = ttk.Button(self.trainer_frame,
+                                                  text="Выбор текста", command=self.switch_to_text_choice_frame)
         self.text_choice_button_main.pack(pady=5)
 
 
@@ -123,6 +126,7 @@ class KeyboardTrainer(tk.Tk):
         self.label_text.pack(pady=20)
 
         self.entry_text = ttk.Entry(self.trainer_frame, textvariable=self.entry_var, font=("Arial", 20))
+        self.entry_text.bind("<FocusIn>", self.track_active_entry)
         self.entry_text.pack()
 
         self.label_result = ttk.Label(self.trainer_frame, text="", font=("Arial", 14))
@@ -160,6 +164,11 @@ class KeyboardTrainer(tk.Tk):
             self.switch_to_trainer_frame()
 
     def count_texts(self):
+        if self.treeStats and self.treeStats.winfo_exists():
+            self.treeStats.destroy()
+            self.treeStats = None
+            self.windowStats.destroy()
+            self.windowStats = None
         json_files = [f for f in os.listdir() if f.endswith('.json')]
 
         users_texts = {}
@@ -176,19 +185,27 @@ class KeyboardTrainer(tk.Tk):
         self.display_results_texsts(sorted_users)
 
     def display_results_texsts(self, sorted_users):
-        root = tk.Tk()
-        root.title("Топ пользователей")
+        self.windowStats = tk.Tk()
+        self.windowStats.title("Топ пользователей")
 
-        tree = ttk.Treeview(root, columns=("Пользователь", "Количество текстов"), show="headings")
-        tree.heading("Пользователь", text="Пользователь")
-        tree.heading("Количество текстов", text="Количество текстов")
-        tree.pack()
+        self.treeStats = ttk.Treeview(self.windowStats, columns=("Пользователь", "Количество текстов"), show="headings")
+        self.treeStats.heading("Пользователь", text="Пользователь")
+        self.treeStats.heading("Количество текстов", text="Количество текстов")
+        self.treeStats.pack()
 
         for i, (user, texts_count) in enumerate(sorted_users[:10]):
-            tree.insert("", i, values=(user, texts_count))
+            self.treeStats.insert("", i, values=(user, texts_count))
+
+        self.windowStats.protocol("WM_DELETE_WINDOW", self.on_window_close)
+        self.windowStats.mainloop()
 
 
     def avarage_speed_print(self):
+        if self.treeStats and self.treeStats.winfo_exists():
+            self.treeStats.destroy()
+            self.treeStats = None
+            self.windowStats.destroy()
+            self.windowStats = None
         json_files = [f for f in os.listdir() if f.endswith('.json')]
 
         users_texts = {}
@@ -198,25 +215,36 @@ class KeyboardTrainer(tk.Tk):
                 data = json.load(f)
                 if 'username' in data and 'total_speed' in data:
                     user = data['username']
-                    average_speed = data['total_speed']/data["texts_typed"]
-                    users_texts[user] = average_speed
+                    if data["texts_typed"] == 0:
+                        users_texts[user] = 0
+                    else:
+                        average_speed = data['total_speed'] / data["texts_typed"]
+                        users_texts[user] = average_speed
         sorted_users = sorted(users_texts.items(), key=lambda x: x[1], reverse=True)
 
         self.display_avarage_results_speed(sorted_users)
 
-    def display_avarage_results_speed(self, sorted_users):
-        root = tk.Tk()
-        root.title("Топ пользователей")
 
-        tree = ttk.Treeview(root, columns=("Пользователь", "Средняя скорость печати"), show="headings")
-        tree.heading("Пользователь", text="Пользователь")
-        tree.heading("Средняя скорость печати", text="Средняя скорость печати")
-        tree.pack()
+    def display_avarage_results_speed(self, sorted_users):
+        self.windowStats = tk.Tk()
+        self.windowStats.title("Топ пользователей")
+        self.treeStats = ttk.Treeview(self.windowStats, columns=("Пользователь", "Средняя скорость печати"), show="headings")
+        self.treeStats.heading("Пользователь", text="Пользователь")
+        self.treeStats.heading("Средняя скорость печати", text="Средняя скорость печати")
+        self.treeStats.pack()
 
         for i, (user, speed) in enumerate(sorted_users[:10]):
-            tree.insert("", i, values=(user, round(speed,1)))
+            self.treeStats.insert("", i, values=(user, round(speed,1)))
+
+        self.windowStats.protocol("WM_DELETE_WINDOW", self.on_window_close)
+        self.windowStats.mainloop()
 
     def max_speed_print(self):
+        if self.treeStats and self.treeStats.winfo_exists():
+            self.treeStats.destroy()
+            self.treeStats = None
+            self.windowStats.destroy()
+            self.windowStats = None
         json_files = [f for f in os.listdir() if f.endswith('.json')]
 
         users_texts = {}
@@ -233,19 +261,26 @@ class KeyboardTrainer(tk.Tk):
         self.display_max_results_speed(sorted_users)
 
     def display_max_results_speed(self, sorted_users):
-        root = tk.Tk()
-        root.title("Топ пользователей")
+        self.windowStats = tk.Tk()
+        self.windowStats.title("Топ пользователей")
 
-        tree = ttk.Treeview(root, columns=("Пользователь", "Максимальная скорость печати"), show="headings")
-        tree.heading("Пользователь", text="Пользователь")
-        tree.heading("Максимальная скорость печати", text="Максимальная скорость печати")
-        tree.pack()
+        self.treeStats = ttk.Treeview(self.windowStats, columns=("Пользователь", "Максимальная скорость печати"), show="headings")
+        self.treeStats.heading("Пользователь", text="Пользователь")
+        self.treeStats.heading("Максимальная скорость печати", text="Максимальная скорость печати")
+        self.treeStats.pack()
 
         for i, (user, speed) in enumerate(sorted_users[:10]):
-            tree.insert("", i, values=(user, round(speed,1)))
+            self.treeStats.insert("", i, values=(user, round(speed, 1)))
 
+        self.windowStats.protocol("WM_DELETE_WINDOW", self.on_window_close)
+        self.windowStats.mainloop()
 
     def count_mistaces(self):
+        if self.treeStats and self.treeStats.winfo_exists():
+            self.treeStats.destroy()
+            self.treeStats = None
+            self.windowStats.destroy()
+            self.windowStats = None
         json_files = [f for f in os.listdir() if f.endswith('.json')]
 
         users_texts = {}
@@ -262,16 +297,26 @@ class KeyboardTrainer(tk.Tk):
         self.display_count_mistaces(sorted_users)
 
     def display_count_mistaces(self, sorted_users):
-        root = tk.Tk()
-        root.title("Топ пользователей")
+        self.windowStats = tk.Tk()
+        self.windowStats.title("Топ пользователей")
 
-        tree = ttk.Treeview(root, columns=("Пользователь", "Количество ошибок"), show="headings")
-        tree.heading("Пользователь", text="Пользователь")
-        tree.heading("Количество ошибок", text="Количество ошибок")
-        tree.pack()
+        self.treeStats = ttk.Treeview(self.windowStats, columns=("Пользователь", "Количество ошибок"), show="headings")
+        self.treeStats.heading("Пользователь", text="Пользователь")
+        self.treeStats.heading("Количество ошибок", text="Количество ошибок")
+        self.treeStats.pack()
 
         for i, (user, speed) in enumerate(sorted_users[:10]):
-            tree.insert("", i, values=(user, round(speed,1)))
+            self.treeStats.insert("", i, values=(user, round(speed, 1)))
+
+        self.windowStats.protocol("WM_DELETE_WINDOW", self.on_window_close)
+        self.windowStats.mainloop()
+
+    def on_window_close(self):
+        if self.treeStats and self.treeStats.winfo_exists():
+            self.treeStats.destroy()
+            self.treeStats = None
+        self.windowStats.destroy()
+        self.windowStats = None
 
     def switch_to_trainer_frame(self):
         self.update_username()
@@ -370,5 +415,54 @@ class KeyboardTrainer(tk.Tk):
     def update_stats_table(self):
         for i in self.tree.get_children():
             self.tree.delete(i)
-        for char, count in self.user_statistics.mistakes_by_char.items():
-            self.tree.insert("", "end", values=(char, count))
+        spam = []
+        for day, speed in self.user_statistics.speed_dynamics.items():
+            spam.append((day, round(speed[0], 2)))
+            spam.sort() 
+        for i in spam:
+            self.tree.insert("", "end", values=(i[0], i[1]))
+
+    def track_active_entry(self, event):
+        self.active_entry = event.widget
+
+    def open_on_screen_keyboard(self, event=None):
+        if hasattr(self, 'keyboard_window') and self.keyboard_window.winfo_exists():
+            self.keyboard_window.destroy()
+            return
+
+        shift_pressed = tk.BooleanVar(self, False)
+        def select(value):
+            if self.active_entry:
+                if value == "<<":
+                    self.active_entry.delete('insert-1c', 'insert')
+                elif value == " Пробел ":
+                    self.active_entry.insert('insert', ' ')
+                else:
+                    if shift_pressed.get():
+                        self.active_entry.insert('insert', value.upper())
+                    else:
+                        self.active_entry.insert('insert', value.lower())
+
+        keys = [
+            ['1', '2', '3', '4', '5', '6', '7', '8', '0', '<<'],
+            ['й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з'],
+            ['ф', 'ы', 'в', 'а', 'п', 'р', 'о', 'л', 'д', 'ж'],
+            ['я', 'ч', 'с', 'м', 'и', 'т', 'ь', 'б', 'ю', '.'],
+        ]
+
+        keyboard_window = tk.Toplevel(self)
+
+        for y, row in enumerate(keys, 1):
+            for x, key in enumerate(row):
+                button = tk.Button(keyboard_window, text=key, command=lambda value=key: select(value))
+                button.grid(row=y, column=x)
+                button.bind("<Button-1>", self.active_entry)
+
+        tk.Checkbutton(keyboard_window, text="Shift", variable=shift_pressed).grid(row=5, column=0)
+        tk.Button(keyboard_window, text=" Пробел ", command=lambda value=" Пробел ": select(value)).grid(row=5,
+                                                                                                         column=1,
+                                                                                                         columnspan=8)
+
+        self.keyboard_window = keyboard_window
+        if self.active_entry:
+            self.active_entry.focus_set()
