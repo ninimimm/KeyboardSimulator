@@ -474,4 +474,3 @@ class KeyboardTrainer(tk.Tk):
         space_frame.grid(row=7, column=2, columnspan=8)
 
         self.keyboard_window = keyboard_window
-
