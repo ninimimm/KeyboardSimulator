@@ -254,7 +254,10 @@ class KeyboardTrainer(tk.Tk):
                 data = json.load(f)
                 if 'username' in data and 'total_speed' in data:
                     user = data['username']
-                    average_speed = max(x for x in data['training_history'][0])
+                    if (len(data['training_history']) > 0):
+                        average_speed = max(x for x in data['training_history'][0])
+                    else:
+                        average_speed = 0
                     users_texts[user] = average_speed
         sorted_users = sorted(users_texts.items(), key=lambda x: x[1], reverse=True)
 
@@ -431,10 +434,12 @@ class KeyboardTrainer(tk.Tk):
             return
 
         shift_pressed = tk.BooleanVar(self, False)
+
         def select(value):
             if self.active_entry:
                 if value == "<<":
-                    self.active_entry.delete('insert-1c', 'insert')
+                    if self.active_entry.get():
+                        self.active_entry.delete(self.active_entry.index('end') - 1, 'end')
                 elif value == " Пробел ":
                     self.active_entry.insert('insert', ' ')
                 else:
@@ -448,6 +453,7 @@ class KeyboardTrainer(tk.Tk):
             ['й', 'ц', 'у', 'к', 'е', 'н', 'г', 'ш', 'щ', 'з'],
             ['ф', 'ы', 'в', 'а', 'п', 'р', 'о', 'л', 'д', 'ж'],
             ['я', 'ч', 'с', 'м', 'и', 'т', 'ь', 'б', 'ю', '.'],
+            ['!', '?', ',', ':', ';', '-', '(', ')', '@', '#'],
         ]
 
         keyboard_window = tk.Toplevel(self)
@@ -455,14 +461,17 @@ class KeyboardTrainer(tk.Tk):
         for y, row in enumerate(keys, 1):
             for x, key in enumerate(row):
                 button = tk.Button(keyboard_window, text=key, command=lambda value=key: select(value))
-                button.grid(row=y, column=x)
-                button.bind("<Button-1>", self.active_entry)
+                button.grid(row=y+1, column=x+1)
 
-        tk.Checkbutton(keyboard_window, text="Shift", variable=shift_pressed).grid(row=5, column=0)
-        tk.Button(keyboard_window, text=" Пробел ", command=lambda value=" Пробел ": select(value)).grid(row=5,
-                                                                                                         column=1,
-                                                                                                         columnspan=8)
+        shift_frame = tk.Frame(keyboard_window)
+        shift_button = tk.Checkbutton(shift_frame, text="Shift", variable=shift_pressed)
+        shift_button.pack(fill=tk.BOTH, expand=True)
+        shift_frame.grid(row=5, column=0)
+
+        space_frame = tk.Frame(keyboard_window)
+        space_button = tk.Button(space_frame, text=" Пробел ", command=lambda value=" Пробел ": select(value))
+        space_button.pack(fill=tk.BOTH, expand=True)
+        space_frame.grid(row=7, column=2, columnspan=8)
 
         self.keyboard_window = keyboard_window
-        if self.active_entry:
-            self.active_entry.focus_set()
+
