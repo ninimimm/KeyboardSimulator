@@ -217,6 +217,26 @@ class TestKeyboardTrainer(unittest.TestCase):
 
         self.assertIsNotNone(self.kt.keyboard_window)
 
+    @patch('os.listdir')
+    @patch('builtins.open', new_callable=unittest.mock.mock_open)
+    @patch('json.load')
+    def test_count_texts(self, mock_json_load, mock_open, mock_listdir):
+        mock_listdir.return_value = ['user1.json', 'user2.json', 'not_a_json.txt']
+        mock_json_load.side_effect = [
+            {'username': 'user1', 'texts_typed': 5},
+            {'username': 'user2', 'texts_typed': 7},
+        ]
+
+        with patch.object(self.kt, 'display_results_texsts', return_value=None) as mock_display_results:
+            self.kt.count_texts()
+
+            mock_listdir.assert_called_once()
+            mock_open.assert_any_call('user1.json', 'r')
+            mock_open.assert_any_call('user2.json', 'r')
+            mock_json_load.assert_any_call(mock_open())
+            mock_display_results.assert_called_once_with([('user2', 7), ('user1', 5)])
+
+
 class MockEvent:
     def __init__(self, widget):
         self.widget = widget
