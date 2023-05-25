@@ -1,14 +1,9 @@
-import json
-import time
 import unittest
-import os
-import glob
 import tkinter as tk
 from unittest.mock import Mock, patch, MagicMock
 from KeyboardTrainer import KeyboardTrainer
 from UserStats import UserStatistics
 from tkinter import Entry, Label
-from tkinter.ttk import Treeview
 class CustomMock(Mock):
     def __round__(self, n=0):
         return round(n)
