@@ -412,7 +412,8 @@ class KeyboardTrainer(tk.Tk):
 
     def update_stats_label(self):
         avg_speed = self.user_statistics.get_avg_speed()
-        self.label_result.config(text=f"Средняя скорость: {avg_speed:.2f} зн/мин. Ошибок: {self.mistakes}",
+        avg_speed_rounded = round(avg_speed, 2)
+        self.label_result.config(text=f"Средняя скорость: {avg_speed_rounded} зн/мин. Ошибок: {self.mistakes}",
                                  foreground="green")
 
     def update_stats_table(self):
@@ -421,7 +422,7 @@ class KeyboardTrainer(tk.Tk):
         spam = []
         for day, speed in self.user_statistics.speed_dynamics.items():
             spam.append((day, round(speed[0], 2)))
-            spam.sort() 
+            spam.sort()
         for i in spam:
             self.tree.insert("", "end", values=(i[0], i[1]))
 
