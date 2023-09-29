@@ -1,5 +1,4 @@
 import json
-import os
 import datetime
 
 
@@ -35,32 +34,52 @@ class UserStatistics:
     def get_avg_speed(self):
         return self.total_speed / self.texts_typed if self.texts_typed > 0 else 0
 
-    def save_to_file(self, filename):
-        with open(filename, "w") as f:
-            json.dump({
-                "username": self.username,
-                "texts_typed": self.texts_typed,
-                "total_speed": self.total_speed,
-                "training_history": self.training_history,
-                "mistakes_by_char": self.mistakes_by_char,
-                "speed_dynamics": self.speed_dynamics
-            }, f)
+    def save_to_file(self):
+        with open("users.json", "r") as file:
+            all_user_data = json.load(file)
 
-    def username(self):
-        return self.username
+        flag = True
+        for user in all_user_data["users"]:
+            if user["username"] == self.username:
+                user["texts_typed"] = self.texts_typed
+                user["total_speed"] = self.total_speed
+                user["training_history"] = self.training_history
+                user["mistakes_by_char"] = self.mistakes_by_char
+                user["speed_dynamics"] = self.speed_dynamics
+                flag = False
+                break
+        if flag: all_user_data["users"].append({
+                "username" : self.username,
+                "texts_typed" : 0,
+                "total_speed" : 0,
+                "training_history" : [],
+                "mistakes_by_char" : {},
+                "speed_dynamics" : {}
+            })
 
-    @classmethod
-    def load_from_file(cls, filename):
-        if not os.path.exists(filename):
-            return None
 
-        with open(filename, "r") as f:
+        with open("users.json", "w") as file:
+            json.dump(all_user_data, file, indent=4)
+
+    def load_from_file(self, username):
+        self.save_to_file()
+        with open("users.json", "r") as f:
             data = json.load(f)
-
-        user_stats = cls(data["username"])
-        user_stats.texts_typed = data["texts_typed"]
-        user_stats.total_speed = data["total_speed"]
-        user_stats.training_history = data["training_history"]
-        user_stats.mistakes_by_char = data["mistakes_by_char"]
-        user_stats.speed_dynamics = data["speed_dynamics"]
-        return user_stats
+        flag = True
+        self.username = username
+        self.texts_typed = 0
+        self.total_speed = 0
+        self.training_history = []
+        self.mistakes_by_char = {}
+        self.speed_dynamics = {}
+        for user in data["users"]:
+            if user["username"] == username:
+                self.texts_typed = user["texts_typed"]
+                self.total_speed = user["total_speed"]
+                self.training_history = user["training_history"]
+                self.mistakes_by_char = user["mistakes_by_char"]
+                self.speed_dynamics = user["speed_dynamics"]
+                flag = False
+                break
+        if flag: return 0
+        return 1
